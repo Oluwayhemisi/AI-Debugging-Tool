@@ -6,5 +6,9 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class Request {
+public class DebugRequest {
+    String code;
+    String customInstruction;
+
 }
+

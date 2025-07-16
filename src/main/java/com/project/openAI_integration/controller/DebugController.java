@@ -1,5 +1,6 @@
 package com.project.openAI_integration.controller;
 
+import com.project.openAI_integration.dto.DebugRequest;
 import com.project.openAI_integration.model.Debug;
 import com.project.openAI_integration.service.DebugService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,8 +15,7 @@ public class DebugController {
     private DebugService gptService;
 
     @PostMapping("/analyze")
-    public Debug analyzeCode(@RequestParam("code") String code,
-                             @RequestParam("operation") String operation) {
-        return gptService.processPrompt(code, operation);
+    public Debug analyzeCode(@RequestBody DebugRequest debugRequest) {
+        return gptService.processPrompt(debugRequest.getCode(), debugRequest.getCustomInstruction());
     }
 }

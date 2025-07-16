@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.concurrent.TimeUnit;
 
 @Service
 //@AllArgsConstructor
@@ -22,7 +23,11 @@ public class DebugServiceImpl implements DebugService{
 
     public DebugServiceImpl(DebugRepo debugRepo) {
         this.debugRepo = debugRepo;
-        this.client = new OkHttpClient();
+        this.client = new OkHttpClient.Builder()
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(60, TimeUnit.SECONDS)
+                .build();
     }
 
 
@@ -31,8 +36,8 @@ public class DebugServiceImpl implements DebugService{
 
 
     @Override
-    public Debug processPrompt(String code, String operation) {
-        String prompt = buildPrompt(code, operation);
+    public Debug processPrompt(String code, String customInstruction) {
+        String prompt = customInstruction + "\n\n" + code;
 
         JSONObject message = new JSONObject();
         message.put("role", "user");
@@ -69,12 +74,12 @@ public class DebugServiceImpl implements DebugService{
         Debug session = new Debug();
         session.setUserInput(code);
         session.setGptResponse(gptResponse);
-        session.setOperationType(operation);
+        session.setOperationType(customInstruction); // now stores user instruction
         session.setTimestamp(LocalDateTime.now());
 
         return debugRepo.save(session);
-
     }
+
 
     private String buildPrompt(String code, String operation) {
         switch (operation.toLowerCase()) {
