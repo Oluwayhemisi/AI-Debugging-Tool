@@ -1,9 +1,7 @@
 package com.project.openAI_integration.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.openAI_integration.model.Debug;
-import com.project.openAI_integration.repository.DebugRepo;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import okhttp3.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -12,23 +10,13 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.concurrent.TimeUnit;
 
 @Service
-//@AllArgsConstructor
+@RequiredArgsConstructor
 public class DebugServiceImpl implements DebugService{
 
-    private final DebugRepo debugRepo;
     private final OkHttpClient client;
 
-    public DebugServiceImpl(DebugRepo debugRepo) {
-        this.debugRepo = debugRepo;
-        this.client = new OkHttpClient.Builder()
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .writeTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(60, TimeUnit.SECONDS)
-                .build();
-    }
 
 
     @Value("${openai.api.key}")
@@ -77,7 +65,7 @@ public class DebugServiceImpl implements DebugService{
         session.setOperationType(customInstruction); // now stores user instruction
         session.setTimestamp(LocalDateTime.now());
 
-        return debugRepo.save(session);
+        return session;
     }
 
 
