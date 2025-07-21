@@ -14,7 +14,7 @@ public class Debug {
 
     private String gptResponse;
 
-    private String operationType; 
+    private String operationType;
 
     private LocalDateTime timestamp;
 }
