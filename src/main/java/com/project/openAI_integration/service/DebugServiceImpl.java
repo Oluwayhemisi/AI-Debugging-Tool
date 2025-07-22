@@ -1,6 +1,7 @@
 package com.project.openAI_integration.service;
 
 import com.project.openAI_integration.model.Debug;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import okhttp3.*;
 import org.json.JSONArray;
@@ -22,6 +23,10 @@ public class DebugServiceImpl implements DebugService{
     @Value("${openai.api.key}")
     private String apiKey;
 
+    @PostConstruct
+    public void init() {
+        System.out.println("Loaded API KEY: " + (apiKey != null ? "✅ Loaded" : "❌ MISSING"));
+    }
 
     @Override
     public Debug processPrompt(String code, String customInstruction) {
