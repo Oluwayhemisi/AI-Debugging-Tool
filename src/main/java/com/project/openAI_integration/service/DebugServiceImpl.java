@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import okhttp3.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +19,8 @@ import java.time.LocalDateTime;
 public class DebugServiceImpl implements DebugService{
 
     private final OkHttpClient client;
+    private static final Logger log = LoggerFactory.getLogger(DebugServiceImpl.class);
+
 
 
 
@@ -25,8 +29,11 @@ public class DebugServiceImpl implements DebugService{
 
     @PostConstruct
     public void init() {
-        System.out.println("Loaded API KEY: " + (apiKey != null ? "✅ Loaded" : "❌ MISSING"));
-    }
+        if (apiKey != null) {
+            log.info("Loaded API KEY: ✅ Loaded");
+        } else {
+            log.error("Loaded API KEY: ❌ MISSING");
+        }    }
 
     @Override
     public Debug processPrompt(String code, String customInstruction) {
@@ -48,6 +55,10 @@ public class DebugServiceImpl implements DebugService{
                 .post(RequestBody.create(requestBody.toString(), MediaType.get("application/json")))
                 .build();
 
+        log.info("Sending request to URL: {}", request.url());
+        log.debug("Request headers: {}", request.headers());
+        log.debug("Request body: {}", requestBody.toString(2));
+
         String gptResponse = "";
         try (Response response = client.newCall(request).execute()) {
             if (response.isSuccessful() && response.body() != null) {
@@ -57,8 +68,13 @@ public class DebugServiceImpl implements DebugService{
                         .getJSONObject(0)
                         .getJSONObject("message")
                         .getString("content");
+                log.info("Received successful response: {}", gptResponse);
+
             } else {
-                gptResponse = "Error: " + response.code();
+                assert response.body() != null;
+                gptResponse = "Error: " + response.body().string();
+                log.error("Request failed. Code: {}, Message: {}, Body: {}",
+                        response.code(), response.message(), response.body().string());
             }
         } catch (IOException e) {
             gptResponse = "IOException: " + e.getMessage();
