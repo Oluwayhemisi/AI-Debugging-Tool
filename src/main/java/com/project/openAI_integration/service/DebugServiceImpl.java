@@ -61,9 +61,11 @@ public class DebugServiceImpl implements DebugService{
 
         String gptResponse = "";
         try (Response response = client.newCall(request).execute()) {
-            if (response.isSuccessful() && response.body() != null) {
-                String result = response.body().string();
-                JSONObject json = new JSONObject(result);
+
+            String responseBody = response.body() != null ? response.body().string() : "null";
+
+            if (response.isSuccessful()) {
+                JSONObject json = new JSONObject(responseBody);
                 gptResponse = json.getJSONArray("choices")
                         .getJSONObject(0)
                         .getJSONObject("message")
@@ -71,10 +73,9 @@ public class DebugServiceImpl implements DebugService{
                 log.info("Received successful response: {}", gptResponse);
 
             } else {
-                assert response.body() != null;
-                gptResponse = "Error: " + response.body().string();
+                gptResponse = "Error: " + responseBody;
                 log.error("Request failed. Code: {}, Message: {}, Body: {}",
-                        response.code(), response.message(), response.body().string());
+                        response.code(), response.message(), responseBody);
             }
         } catch (IOException e) {
             gptResponse = "IOException: " + e.getMessage();
