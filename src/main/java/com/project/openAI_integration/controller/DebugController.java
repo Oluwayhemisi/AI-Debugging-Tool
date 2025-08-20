@@ -21,7 +21,7 @@ public class DebugController {
 
     @PostMapping("/analyze")
     public Debug analyzeCode(@RequestBody DebugRequest debugRequest) {
-        return gptService.processPrompt(debugRequest.getCode(), debugRequest.getCustomInstruction());
+        return gptService.processPrompt(debugRequest.getPrompt());
     }
     @GetMapping("/test-key")
     public ResponseEntity<String> testKey() {

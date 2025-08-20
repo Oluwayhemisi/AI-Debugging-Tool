@@ -7,8 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class DebugRequest {
-    String code;
-    String customInstruction;
+    String prompt;
 
 }
 

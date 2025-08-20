@@ -1,5 +1,8 @@
 package com.project.openAI_integration.service;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.project.openAI_integration.model.Debug;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -18,8 +21,10 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class DebugServiceImpl implements DebugService{
 
+    private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+
     private final OkHttpClient client;
-    private static final Logger log = LoggerFactory.getLogger(DebugServiceImpl.class);
+    private final Gson gson;    private static final Logger log = LoggerFactory.getLogger(DebugServiceImpl.class);
 
 
 
@@ -36,42 +41,44 @@ public class DebugServiceImpl implements DebugService{
         }    }
 
     @Override
-    public Debug processPrompt(String code, String customInstruction) {
-        String prompt = customInstruction + "\n\n" + code;
+    public Debug processPrompt(String prompt) {
+        // ✅ Build request payload
+        JsonObject message = new JsonObject();
+        message.addProperty("role", "user");
+        message.addProperty("content", prompt);
 
-        JSONObject message = new JSONObject();
-        message.put("role", "user");
-        message.put("content", prompt);
+        JsonArray messages = new JsonArray();
+        messages.add(message);
 
-        JSONObject requestBody = new JSONObject();
-        requestBody.put("model", "gpt-3.5-turbo");
-        requestBody.put("messages", new JSONArray().put(message));
-        requestBody.put("temperature", 0.7);
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("model", "gpt-3.5-turbo");
+        requestBody.add("messages", messages);
+        requestBody.addProperty("temperature", 0.7);
 
+        // ✅ Create HTTP request
         Request request = new Request.Builder()
                 .url("https://api.openai.com/v1/chat/completions")
                 .header("Authorization", "Bearer " + apiKey)
                 .header("Content-Type", "application/json")
-                .post(RequestBody.create(requestBody.toString(), MediaType.get("application/json")))
+                .post(RequestBody.create(gson.toJson(requestBody), JSON))
                 .build();
 
         log.info("Sending request to URL: {}", request.url());
         log.debug("Request headers: {}", request.headers());
-        log.debug("Request body: {}", requestBody.toString(2));
+        log.debug("Request body: {}", gson.toJson(requestBody));
 
-        String gptResponse = "";
+        String gptResponse;
         try (Response response = client.newCall(request).execute()) {
-
-            String responseBody = response.body() != null ? response.body().string() : "null";
+            String responseBody = response.body() != null ? response.body().string() : "";
 
             if (response.isSuccessful()) {
-                JSONObject json = new JSONObject(responseBody);
-                gptResponse = json.getJSONArray("choices")
-                        .getJSONObject(0)
-                        .getJSONObject("message")
-                        .getString("content");
-                log.info("Received successful response: {}", gptResponse);
+                JsonObject json = gson.fromJson(responseBody, JsonObject.class);
+                gptResponse = json.getAsJsonArray("choices")
+                        .get(0).getAsJsonObject()
+                        .getAsJsonObject("message")
+                        .get("content").getAsString();
 
+                log.info("Received successful response");
             } else {
                 gptResponse = "Error: " + responseBody;
                 log.error("Request failed. Code: {}, Message: {}, Body: {}",
@@ -79,24 +86,13 @@ public class DebugServiceImpl implements DebugService{
             }
         } catch (IOException e) {
             gptResponse = "IOException: " + e.getMessage();
+            log.error("IOException while calling OpenAI API", e);
         }
 
+        // ✅ Build Debug session response
         Debug session = new Debug();
-        session.setUserInput(code);
         session.setGptResponse(gptResponse);
-        session.setOperationType(customInstruction); // now stores user instruction
-        session.setTimestamp(LocalDateTime.now());
-
         return session;
     }
 
-
-    private String buildPrompt(String code, String operation) {
-        switch (operation.toLowerCase()) {
-            case "fix": return "Fix the bugs in the following code:\n\n" + code;
-            case "explain": return "Explain what the following code does:\n\n" + code;
-            case "refactor": return "Refactor the following code to be cleaner and more efficient:\n\n" + code;
-            default: return "Analyze the following code:\n\n" + code;
-        }
-    }
 }
